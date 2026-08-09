@@ -36,8 +36,8 @@ router.get("/transactions", requireAuth, async (req, res): Promise<void> => {
   const conditions = [eq(transactionsTable.userId, userId)];
   if (type) conditions.push(eq(transactionsTable.type, type));
   if (categoryId) conditions.push(eq(transactionsTable.categoryId, Math.round(categoryId)));
-  if (dateFrom) conditions.push(gte(transactionsTable.date, dateFrom));
-  if (dateTo) conditions.push(lte(transactionsTable.date, dateTo));
+  if (dateFrom) conditions.push(gte(transactionsTable.date, (dateFrom as unknown as Date).toISOString().split("T")[0]));
+  if (dateTo) conditions.push(lte(transactionsTable.date, (dateTo as unknown as Date).toISOString().split("T")[0]));
   if (amountMin) conditions.push(gte(transactionsTable.amount, String(amountMin)));
   if (amountMax) conditions.push(lte(transactionsTable.amount, String(amountMax)));
   if (search) conditions.push(like(transactionsTable.note, `%${search}%`));
@@ -90,7 +90,7 @@ router.post("/transactions", requireAuth, async (req, res): Promise<void> => {
       type: parsed.data.type,
       amount: String(parsed.data.amount),
       categoryId: Math.round(parsed.data.categoryId),
-      date: parsed.data.date,
+      date: typeof parsed.data.date === "string" ? parsed.data.date : (parsed.data.date as unknown as Date).toISOString().split("T")[0],
       note: parsed.data.note ?? null,
     })
     .returning();
@@ -156,7 +156,7 @@ router.patch("/transactions/:id", requireAuth, async (req, res): Promise<void> =
   if (parsed.data.type !== undefined) updateData.type = parsed.data.type;
   if (parsed.data.amount !== undefined) updateData.amount = String(parsed.data.amount);
   if (parsed.data.categoryId !== undefined) updateData.categoryId = Math.round(parsed.data.categoryId);
-  if (parsed.data.date !== undefined) updateData.date = parsed.data.date;
+  if (parsed.data.date !== undefined) updateData.date = typeof parsed.data.date === "string" ? parsed.data.date : (parsed.data.date as unknown as Date).toISOString().split("T")[0];
   if (parsed.data.note !== undefined) updateData.note = parsed.data.note;
 
   const [tx] = await db

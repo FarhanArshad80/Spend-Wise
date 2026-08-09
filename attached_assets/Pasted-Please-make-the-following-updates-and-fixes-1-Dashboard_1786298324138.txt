@@ -1,0 +1,39 @@
+Please make the following updates and fixes:
+
+1. **Dashboard – Spending by Category**
+
+   * The alignment in the “Spending by Category” section is not proper.
+   * When users add more categories, some of them appear outside the container/box.
+   * Please make the layout responsive so that all categories remain properly aligned inside the section regardless of how many categories are added.
+
+2. **Budget Section – Monthly Budget & Warnings**
+
+   * Add a button that allows the user to set a specific budget for a particular month.
+   * The user should be able to enter the monthly budget amount.
+   * When the user reaches **90% of the budget** (10% remaining), show the first warning.
+   * When the user exceeds the budget, clearly show that the budget has been exceeded.
+   * The exceeded amount should also be displayed, for example: **“You have exceeded your Food budget by Rs. 2,500.”**
+   * Make sure the user can clearly see which specific budget/category has been exceeded.
+
+3. **Add Category Button**
+
+   * The “Add Category” button is currently not working.
+   * Please check and fix the functionality.
+   * Users should be able to successfully create custom income and expense categories.
+
+4. **Recurring Transactions**
+
+   * The Recurring Transactions button is currently not working. Please fix it.
+   * Recurring transactions should work as follows:
+
+     * When a user adds a recurring expense, it should be saved as a recurring bill/fee.
+     * The user should be able to enter the expense details, including the amount, category, date, and note.
+     * On the **1st day of every month**, the system should send the user an email reminder for their recurring bills/fees that they have added.
+     * The reminder should include the relevant details of the recurring payment, such as the name/note, amount, category, and payment date.
+     * Users should be able to edit or remove recurring expenses.
+
+5. **Reports – Expense Chart**
+
+   * In the Reports section, the expense chart is currently displayed in red.
+   * Please change the expense chart color to **grey**.
+   * Keep the rest of the chart design unchanged.

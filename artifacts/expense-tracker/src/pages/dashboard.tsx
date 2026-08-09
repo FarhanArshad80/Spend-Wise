@@ -3,7 +3,7 @@ import { formatCurrency, formatPercentage, cn } from "@/lib/utils";
 import { Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import { AlertCircle, ArrowUpRight, ArrowDownRight, TrendingUp, TrendingDown, Plus, ArrowLeftRight } from "lucide-react";
+import { AlertCircle, ArrowUpRight, ArrowDownRight, TrendingUp, TrendingDown, Plus, ArrowLeftRight, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { format } from "date-fns";
 import { Progress } from "@/components/ui/progress";
@@ -17,21 +17,57 @@ export default function DashboardPage() {
 
   const transactions = transactionsData?.data || [];
 
+  // Determine if the overall budget is exceeded or at warning threshold
+  const budgetExceeded = summary?.monthlyBudget !== null && summary?.budgetPercentUsed !== null && (summary?.budgetPercentUsed ?? 0) >= 100;
+  const budgetWarning = !budgetExceeded && summary?.monthlyBudget !== null && summary?.budgetPercentUsed !== null && (summary?.budgetPercentUsed ?? 0) >= 90;
+  const exceededAmount = budgetExceeded && summary?.monthlyBudget ? (summary.budgetSpent - summary.monthlyBudget) : 0;
+
   return (
     <div className="space-y-8 pb-8">
-      {/* Alerts */}
+      {/* Budget exceeded / warning banners */}
+      {budgetExceeded && summary && (
+        <Alert className="bg-red-50 dark:bg-red-950/20 border-red-300 dark:border-red-900/50">
+          <AlertCircle className="h-4 w-4 text-red-600" />
+          <AlertTitle className="text-red-700 dark:text-red-400">Monthly budget exceeded!</AlertTitle>
+          <AlertDescription className="text-red-600 dark:text-red-300">
+            You have exceeded your monthly budget of {formatCurrency(summary.monthlyBudget!)} by <strong>{formatCurrency(exceededAmount)}</strong>.
+          </AlertDescription>
+        </Alert>
+      )}
+      {budgetWarning && summary && (
+        <Alert className="bg-amber-50 dark:bg-amber-950/20 border-amber-300 dark:border-amber-900/50">
+          <AlertTriangle className="h-4 w-4 text-amber-600" />
+          <AlertTitle className="text-amber-700 dark:text-amber-400">Approaching budget limit</AlertTitle>
+          <AlertDescription className="text-amber-600 dark:text-amber-300">
+            You've used {formatPercentage(summary.budgetPercentUsed!)} of your monthly budget. Only {formatCurrency(summary.budgetRemaining!)} remaining.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Triggered budget alerts */}
       {alerts && alerts.length > 0 && (
         <div className="space-y-3">
-          {alerts.map((alert) => (
-            <Alert key={alert.alertId} variant="destructive" className="bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900/50">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Budget Alert: {alert.categoryName || "Overall"}</AlertTitle>
-              <AlertDescription>
-                You've used {formatPercentage(alert.currentPercentage)} of your {formatCurrency(alert.budgetAmount)} budget. 
-                Remaining: {formatCurrency(alert.budgetAmount - alert.amount)}.
-              </AlertDescription>
-            </Alert>
-          ))}
+          {alerts.map((alert) => {
+            const isExceeded = alert.currentPercentage >= 100;
+            const overBy = isExceeded ? alert.amount - alert.budgetAmount : 0;
+            return (
+              <Alert key={alert.alertId} className={isExceeded
+                ? "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900/50"
+                : "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/50"
+              }>
+                <AlertCircle className={`h-4 w-4 ${isExceeded ? "text-red-600" : "text-amber-600"}`} />
+                <AlertTitle className={isExceeded ? "text-red-700 dark:text-red-400" : "text-amber-700 dark:text-amber-400"}>
+                  {isExceeded ? "Budget exceeded" : "Budget alert"}: {alert.categoryName || "Overall"}
+                </AlertTitle>
+                <AlertDescription className={isExceeded ? "text-red-600 dark:text-red-300" : "text-amber-600 dark:text-amber-300"}>
+                  {isExceeded
+                    ? <>You have exceeded your {alert.categoryName || "overall"} budget by <strong>{formatCurrency(overBy)}</strong>.</>
+                    : <>You've used {formatPercentage(alert.currentPercentage)} of your {formatCurrency(alert.budgetAmount)} budget. Remaining: {formatCurrency(alert.budgetAmount - alert.amount)}.</>
+                  }
+                </AlertDescription>
+              </Alert>
+            );
+          })}
         </div>
       )}
 
@@ -51,12 +87,15 @@ export default function DashboardPage() {
                   <h2 className="text-slate-500 dark:text-slate-400 font-medium mb-2">Left to spend this month</h2>
                   <div className={cn(
                     "text-5xl md:text-7xl font-bold tracking-tight",
-                    summary.budgetPercentUsed !== null && summary.budgetPercentUsed >= 90 ? "text-red-600 dark:text-red-500" :
-                    summary.budgetPercentUsed !== null && summary.budgetPercentUsed >= 75 ? "text-amber-600 dark:text-amber-500" :
+                    budgetExceeded ? "text-red-600 dark:text-red-500" :
+                    budgetWarning ? "text-amber-600 dark:text-amber-500" :
                     "text-slate-900 dark:text-white"
                   )}>
-                    {formatCurrency(summary.budgetRemaining ?? 0)}
+                    {budgetExceeded ? `-${formatCurrency(exceededAmount)}` : formatCurrency(summary.budgetRemaining ?? 0)}
                   </div>
+                  {budgetExceeded && (
+                    <p className="text-sm text-red-500 mt-2 font-medium">Budget exceeded by {formatCurrency(exceededAmount)}</p>
+                  )}
                 </div>
                 <div className="flex items-center gap-4">
                   <Link 
@@ -83,11 +122,21 @@ export default function DashboardPage() {
                     value={Math.min(summary.budgetPercentUsed, 100)} 
                     className="h-3"
                     indicatorClassName={cn(
-                      summary.budgetPercentUsed >= 90 ? "bg-red-500" :
-                      summary.budgetPercentUsed >= 75 ? "bg-amber-500" :
+                      budgetExceeded ? "bg-red-500" :
+                      budgetWarning ? "bg-amber-500" :
                       "bg-teal-500"
                     )}
                   />
+                  {budgetWarning && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                      ⚠ Only 10% of your budget remains. Consider reducing spending.
+                    </p>
+                  )}
+                  {budgetExceeded && (
+                    <p className="text-xs text-red-600 dark:text-red-400 font-medium">
+                      ✕ Budget exceeded — you have spent {formatCurrency(exceededAmount)} more than planned.
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -200,7 +249,7 @@ export default function DashboardPage() {
             <CardTitle>Spending by Category</CardTitle>
             <CardDescription>Where your money went this month</CardDescription>
           </CardHeader>
-          <CardContent className="p-6 flex-1 flex flex-col justify-center">
+          <CardContent className="p-6 flex-1 flex flex-col">
             {isLoadingSpending ? (
               <div className="flex justify-center py-12"><Skeleton className="h-48 w-48 rounded-full" /></div>
             ) : !spending || spending.length === 0 ? (
@@ -209,35 +258,48 @@ export default function DashboardPage() {
                 <p>Not enough data</p>
               </div>
             ) : (
-              <div className="h-[250px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={spending}
-                      dataKey="amount"
-                      nameKey="categoryName"
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={80}
-                      paddingAngle={2}
-                    >
-                      {spending.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color || `hsl(var(--chart-${(index % 5) + 1}))`} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      formatter={(value: number) => formatCurrency(value)}
-                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-                
-                <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-                  {spending.slice(0, 4).map((cat, i) => (
-                    <div key={i} className="flex items-center gap-2 truncate">
-                      <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: cat.color || `hsl(var(--chart-${(i % 5) + 1}))` }} />
-                      <span className="truncate text-slate-600 dark:text-slate-300">{cat.categoryName}</span>
+              <div className="flex flex-col gap-4">
+                {/* Donut chart */}
+                <div className="h-[200px] w-full flex-shrink-0">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={spending}
+                        dataKey="amount"
+                        nameKey="categoryName"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={55}
+                        outerRadius={75}
+                        paddingAngle={2}
+                      >
+                        {spending.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color || `hsl(var(--chart-${(index % 5) + 1}))`} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        formatter={(value: number) => formatCurrency(value)}
+                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Legend — all categories, scrollable if many */}
+                <div className="flex flex-col gap-2 overflow-y-auto max-h-[220px] pr-1">
+                  {spending.map((cat, i) => (
+                    <div key={i} className="flex items-center justify-between gap-2 min-w-0">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div
+                          className="w-2.5 h-2.5 rounded-full shrink-0"
+                          style={{ backgroundColor: cat.color || `hsl(var(--chart-${(i % 5) + 1}))` }}
+                        />
+                        <span className="text-sm text-slate-700 dark:text-slate-300 truncate">{cat.categoryName}</span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-xs text-slate-500 dark:text-slate-400">{cat.percentage?.toFixed(1)}%</span>
+                        <span className="text-sm font-medium text-slate-800 dark:text-slate-200">{formatCurrency(cat.amount)}</span>
+                      </div>
                     </div>
                   ))}
                 </div>
