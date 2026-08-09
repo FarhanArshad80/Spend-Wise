@@ -35,7 +35,10 @@ export default function TransactionFormPage() {
 
   const { data: categories } = useListCategories();
   const { data: transaction, isLoading: isLoadingTx } = useGetTransaction(id as number, {
-    query: { enabled: isEditing && id !== null }
+    query: {
+      enabled: isEditing && id !== null,
+      queryKey: getGetTransactionQueryKey(id as number),
+    },
   });
 
   const createMutation = useCreateTransaction();
