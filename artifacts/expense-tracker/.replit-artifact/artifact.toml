@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Expense Tracker"
+description = "A personal expense tracker web app. Users can track daily income and spending, manage monthly and category-level budgets, set recurring transactions, view spending analytics/charts, receive budget alerts, and get weekly spending summaries. Each user's financial data is isolated via authentication."
+version = "1.0.0"
+id = "artifacts/expense-tracker"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25762
+
+[services.development]
+run = "pnpm --filter @workspace/expense-tracker run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/expense-tracker", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/expense-tracker/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25762"
+BASE_PATH = "/"

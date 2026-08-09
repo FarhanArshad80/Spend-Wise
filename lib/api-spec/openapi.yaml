@@ -3,20 +3,34 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Expense Tracker API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: transactions
+    description: Transaction operations
+  - name: categories
+    description: Category operations
+  - name: recurring
+    description: Recurring transaction operations
+  - name: budgets
+    description: Budget operations
+  - name: budget-alerts
+    description: Budget alert operations
+  - name: reports
+    description: Reports and analytics
+  - name: settings
+    description: User settings
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,8 +38,597 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # ─── TRANSACTIONS ────────────────────────────────────────────────────────────
+  /transactions:
+    get:
+      operationId: listTransactions
+      tags: [transactions]
+      summary: List transactions with optional filters
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [income, expense]
+        - name: categoryId
+          in: query
+          schema:
+            type: number
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: amountMin
+          in: query
+          schema:
+            type: number
+        - name: amountMax
+          in: query
+          schema:
+            type: number
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: number
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: number
+            default: 0
+      responses:
+        "200":
+          description: List of transactions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransactionList"
+    post:
+      operationId: createTransaction
+      tags: [transactions]
+      summary: Create a transaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransactionInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+
+  /transactions/{id}:
+    get:
+      operationId: getTransaction
+      tags: [transactions]
+      summary: Get a transaction by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Transaction
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateTransaction
+      tags: [transactions]
+      summary: Update a transaction
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransactionUpdate"
+      responses:
+        "200":
+          description: Updated transaction
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+    delete:
+      operationId: deleteTransaction
+      tags: [transactions]
+      summary: Delete a transaction
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "204":
+          description: Deleted
+
+  # ─── CATEGORIES ──────────────────────────────────────────────────────────────
+  /categories:
+    get:
+      operationId: listCategories
+      tags: [categories]
+      summary: List categories
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [income, expense]
+      responses:
+        "200":
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Category"
+    post:
+      operationId: createCategory
+      tags: [categories]
+      summary: Create a custom category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+
+  /categories/{id}:
+    patch:
+      operationId: updateCategory
+      tags: [categories]
+      summary: Update a category
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+    delete:
+      operationId: deleteCategory
+      tags: [categories]
+      summary: Delete a category
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "204":
+          description: Deleted
+
+  # ─── RECURRING TRANSACTIONS ──────────────────────────────────────────────────
+  /recurring:
+    get:
+      operationId: listRecurring
+      tags: [recurring]
+      summary: List recurring transactions
+      responses:
+        "200":
+          description: List of recurring transactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RecurringTransaction"
+    post:
+      operationId: createRecurring
+      tags: [recurring]
+      summary: Create a recurring transaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecurringInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecurringTransaction"
+
+  /recurring/{id}:
+    patch:
+      operationId: updateRecurring
+      tags: [recurring]
+      summary: Update a recurring transaction
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecurringUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecurringTransaction"
+    delete:
+      operationId: deleteRecurring
+      tags: [recurring]
+      summary: Delete a recurring transaction
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "204":
+          description: Deleted
+
+  /recurring/{id}/process:
+    post:
+      operationId: processRecurring
+      tags: [recurring]
+      summary: Manually trigger a recurring transaction to create its next occurrence
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "201":
+          description: Created transaction
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+
+  # ─── BUDGETS ─────────────────────────────────────────────────────────────────
+  /budgets:
+    get:
+      operationId: listBudgets
+      tags: [budgets]
+      summary: List budgets (monthly overall + category budgets)
+      parameters:
+        - name: month
+          in: query
+          schema:
+            type: string
+            description: "YYYY-MM format"
+      responses:
+        "200":
+          description: List of budgets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Budget"
+    post:
+      operationId: createBudget
+      tags: [budgets]
+      summary: Create a budget
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BudgetInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Budget"
+
+  /budgets/{id}:
+    patch:
+      operationId: updateBudget
+      tags: [budgets]
+      summary: Update a budget
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BudgetUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Budget"
+    delete:
+      operationId: deleteBudget
+      tags: [budgets]
+      summary: Delete a budget
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "204":
+          description: Deleted
+
+  # ─── BUDGET ALERTS ───────────────────────────────────────────────────────────
+  /budget-alerts:
+    get:
+      operationId: listBudgetAlerts
+      tags: [budget-alerts]
+      summary: List budget alerts
+      responses:
+        "200":
+          description: List of budget alerts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BudgetAlert"
+    post:
+      operationId: createBudgetAlert
+      tags: [budget-alerts]
+      summary: Create a budget alert
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BudgetAlertInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BudgetAlert"
+
+  /budget-alerts/{id}:
+    patch:
+      operationId: updateBudgetAlert
+      tags: [budget-alerts]
+      summary: Update a budget alert
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BudgetAlertUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BudgetAlert"
+    delete:
+      operationId: deleteBudgetAlert
+      tags: [budget-alerts]
+      summary: Delete a budget alert
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "204":
+          description: Deleted
+
+  # ─── REPORTS (WOW endpoints) ─────────────────────────────────────────────────
+  /reports/dashboard-summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [reports]
+      summary: Current month summary - budget, income, expenses, balance, budget progress
+      parameters:
+        - name: month
+          in: query
+          schema:
+            type: string
+            description: "YYYY-MM format, defaults to current month"
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /reports/spending-by-category:
+    get:
+      operationId: getSpendingByCategory
+      tags: [reports]
+      summary: Spending breakdown by category for a month
+      parameters:
+        - name: month
+          in: query
+          schema:
+            type: string
+            description: "YYYY-MM format"
+      responses:
+        "200":
+          description: Spending by category
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CategorySpending"
+
+  /reports/monthly-trend:
+    get:
+      operationId: getMonthlyTrend
+      tags: [reports]
+      summary: Month-over-month income vs expense trend (last 6 months)
+      responses:
+        "200":
+          description: Monthly trend
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MonthlyTrend"
+
+  /reports/budget-vs-actual:
+    get:
+      operationId: getBudgetVsActual
+      tags: [reports]
+      summary: Budget vs actual spending per category for a month
+      parameters:
+        - name: month
+          in: query
+          schema:
+            type: string
+            description: "YYYY-MM format"
+      responses:
+        "200":
+          description: Budget vs actual
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BudgetVsActual"
+
+  /reports/weekly-summary:
+    get:
+      operationId: getWeeklySummary
+      tags: [reports]
+      summary: Weekly spending summary with comparison to previous week
+      responses:
+        "200":
+          description: Weekly summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WeeklySummary"
+
+  /reports/triggered-alerts:
+    get:
+      operationId: getTriggeredAlerts
+      tags: [reports]
+      summary: Currently triggered budget alerts based on spending vs thresholds
+      parameters:
+        - name: month
+          in: query
+          schema:
+            type: string
+            description: "YYYY-MM format"
+      responses:
+        "200":
+          description: Triggered alerts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TriggeredAlert"
+
+  # ─── SETTINGS ────────────────────────────────────────────────────────────────
+  /settings:
+    get:
+      operationId: getSettings
+      tags: [settings]
+      summary: Get user settings
+      responses:
+        "200":
+          description: User settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserSettings"
+    patch:
+      operationId: updateSettings
+      tags: [settings]
+      summary: Update user settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserSettingsUpdate"
+      responses:
+        "200":
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserSettings"
+
 components:
   schemas:
+    # ─── HEALTH ────────────────────────────────────────────────────────────────
     HealthStatus:
       type: object
       properties:
@@ -34,3 +637,458 @@ components:
       required:
         - status
 
+    # ─── TRANSACTION ───────────────────────────────────────────────────────────
+    Transaction:
+      type: object
+      required: [id, userId, type, amount, categoryId, date, createdAt, updatedAt]
+      properties:
+        id:
+          type: number
+        userId:
+          type: string
+        type:
+          type: string
+          enum: [income, expense]
+        amount:
+          type: number
+        categoryId:
+          type: number
+        categoryName:
+          type: ["string", "null"]
+        date:
+          type: string
+          format: date
+        note:
+          type: ["string", "null"]
+        recurringId:
+          type: ["number", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    TransactionList:
+      type: object
+      required: [data, total]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Transaction"
+        total:
+          type: number
+
+    TransactionInput:
+      type: object
+      required: [type, amount, categoryId, date]
+      properties:
+        type:
+          type: string
+          enum: [income, expense]
+        amount:
+          type: number
+          minimum: 0.01
+        categoryId:
+          type: number
+        date:
+          type: string
+          format: date
+        note:
+          type: string
+
+    TransactionUpdate:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [income, expense]
+        amount:
+          type: number
+          minimum: 0.01
+        categoryId:
+          type: number
+        date:
+          type: string
+          format: date
+        note:
+          type: ["string", "null"]
+
+    # ─── CATEGORY ──────────────────────────────────────────────────────────────
+    Category:
+      type: object
+      required: [id, name, type, isDefault]
+      properties:
+        id:
+          type: number
+        name:
+          type: string
+        type:
+          type: string
+          enum: [income, expense]
+        icon:
+          type: ["string", "null"]
+        color:
+          type: ["string", "null"]
+        isDefault:
+          type: boolean
+        userId:
+          type: ["string", "null"]
+
+    CategoryInput:
+      type: object
+      required: [name, type]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        type:
+          type: string
+          enum: [income, expense]
+        icon:
+          type: string
+        color:
+          type: string
+
+    CategoryUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        icon:
+          type: ["string", "null"]
+        color:
+          type: ["string", "null"]
+
+    # ─── RECURRING ─────────────────────────────────────────────────────────────
+    RecurringTransaction:
+      type: object
+      required: [id, userId, type, amount, categoryId, recurringDay, isActive, createdAt, updatedAt]
+      properties:
+        id:
+          type: number
+        userId:
+          type: string
+        type:
+          type: string
+          enum: [income, expense]
+        amount:
+          type: number
+        categoryId:
+          type: number
+        categoryName:
+          type: ["string", "null"]
+        recurringDay:
+          type: number
+          minimum: 1
+          maximum: 31
+        note:
+          type: ["string", "null"]
+        isActive:
+          type: boolean
+        lastProcessedDate:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    RecurringInput:
+      type: object
+      required: [type, amount, categoryId, recurringDay]
+      properties:
+        type:
+          type: string
+          enum: [income, expense]
+        amount:
+          type: number
+          minimum: 0.01
+        categoryId:
+          type: number
+        recurringDay:
+          type: number
+          minimum: 1
+          maximum: 31
+        note:
+          type: string
+
+    RecurringUpdate:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [income, expense]
+        amount:
+          type: number
+          minimum: 0.01
+        categoryId:
+          type: number
+        recurringDay:
+          type: number
+          minimum: 1
+          maximum: 31
+        note:
+          type: ["string", "null"]
+        isActive:
+          type: boolean
+
+    # ─── BUDGET ────────────────────────────────────────────────────────────────
+    Budget:
+      type: object
+      required: [id, userId, month, amount, type, createdAt, updatedAt]
+      properties:
+        id:
+          type: number
+        userId:
+          type: string
+        month:
+          type: string
+          description: "YYYY-MM"
+        amount:
+          type: number
+        type:
+          type: string
+          enum: [overall, category]
+        categoryId:
+          type: ["number", "null"]
+        categoryName:
+          type: ["string", "null"]
+        spent:
+          type: ["number", "null"]
+        remaining:
+          type: ["number", "null"]
+        percentUsed:
+          type: ["number", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    BudgetInput:
+      type: object
+      required: [month, amount, type]
+      properties:
+        month:
+          type: string
+          description: "YYYY-MM"
+        amount:
+          type: number
+          minimum: 0
+        type:
+          type: string
+          enum: [overall, category]
+        categoryId:
+          type: number
+
+    BudgetUpdate:
+      type: object
+      properties:
+        amount:
+          type: number
+          minimum: 0
+
+    # ─── BUDGET ALERTS ─────────────────────────────────────────────────────────
+    BudgetAlert:
+      type: object
+      required: [id, userId, type, threshold, createdAt, updatedAt]
+      properties:
+        id:
+          type: number
+        userId:
+          type: string
+        type:
+          type: string
+          enum: [overall, category]
+        categoryId:
+          type: ["number", "null"]
+        categoryName:
+          type: ["string", "null"]
+        threshold:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: "Percentage threshold (0-100)"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    BudgetAlertInput:
+      type: object
+      required: [type, threshold]
+      properties:
+        type:
+          type: string
+          enum: [overall, category]
+        categoryId:
+          type: number
+        threshold:
+          type: number
+          minimum: 0
+          maximum: 100
+
+    BudgetAlertUpdate:
+      type: object
+      properties:
+        threshold:
+          type: number
+          minimum: 0
+          maximum: 100
+
+    # ─── REPORTS ───────────────────────────────────────────────────────────────
+    DashboardSummary:
+      type: object
+      required: [month, totalIncome, totalExpenses, currentBalance, monthlyBudget, budgetSpent, budgetRemaining, budgetPercentUsed]
+      properties:
+        month:
+          type: string
+        totalIncome:
+          type: number
+        totalExpenses:
+          type: number
+        currentBalance:
+          type: number
+        monthlyBudget:
+          type: ["number", "null"]
+        budgetSpent:
+          type: number
+        budgetRemaining:
+          type: ["number", "null"]
+        budgetPercentUsed:
+          type: ["number", "null"]
+
+    CategorySpending:
+      type: object
+      required: [categoryId, categoryName, amount, percentage]
+      properties:
+        categoryId:
+          type: number
+        categoryName:
+          type: string
+        amount:
+          type: number
+        percentage:
+          type: number
+        color:
+          type: ["string", "null"]
+
+    MonthlyTrend:
+      type: object
+      required: [month, income, expenses, balance]
+      properties:
+        month:
+          type: string
+        income:
+          type: number
+        expenses:
+          type: number
+        balance:
+          type: number
+
+    BudgetVsActual:
+      type: object
+      required: [name, budget, actual, remaining, percentUsed, type]
+      properties:
+        name:
+          type: string
+        budget:
+          type: number
+        actual:
+          type: number
+        remaining:
+          type: number
+        percentUsed:
+          type: number
+        type:
+          type: string
+          enum: [overall, category]
+        categoryId:
+          type: ["number", "null"]
+
+    WeeklySummary:
+      type: object
+      required: [weekStart, weekEnd, totalSpent, previousWeekSpent, percentChange, topCategories, budgetProgress]
+      properties:
+        weekStart:
+          type: string
+          format: date
+        weekEnd:
+          type: string
+          format: date
+        totalSpent:
+          type: number
+        previousWeekSpent:
+          type: number
+        percentChange:
+          type: number
+        topCategories:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategorySpending"
+        budgetProgress:
+          type: number
+          description: "Percentage of monthly budget used so far"
+
+    TriggeredAlert:
+      type: object
+      required: [alertId, type, threshold, currentPercentage, amount, budgetAmount]
+      properties:
+        alertId:
+          type: number
+        type:
+          type: string
+          enum: [overall, category]
+        categoryId:
+          type: ["number", "null"]
+        categoryName:
+          type: ["string", "null"]
+        threshold:
+          type: number
+        currentPercentage:
+          type: number
+        amount:
+          type: number
+        budgetAmount:
+          type: number
+
+    UserSettings:
+      type: object
+      required: [userId, currency, weeklyEmailEnabled]
+      properties:
+        userId:
+          type: string
+        currency:
+          type: string
+          default: "PKR"
+        weeklyEmailEnabled:
+          type: boolean
+          default: true
+        defaultView:
+          type: string
+          enum: [dashboard, transactions, budgets, reports]
+          default: "dashboard"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    UserSettingsUpdate:
+      type: object
+      properties:
+        currency:
+          type: string
+        weeklyEmailEnabled:
+          type: boolean
+        defaultView:
+          type: string
+          enum: [dashboard, transactions, budgets, reports]
